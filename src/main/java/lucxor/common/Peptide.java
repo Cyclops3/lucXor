@@ -14,6 +14,7 @@ import gnu.trove.map.TMap;
 import gnu.trove.map.hash.TDoubleObjectHashMap;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.map.hash.TIntDoubleHashMap;
+import lombok.extern.slf4j.Slf4j;
 import lucxor.*;
 import lucxor.algorithm.ModelDataCID;
 import lucxor.algorithm.ModelDataHCD;
@@ -26,6 +27,7 @@ import org.apache.commons.math3.util.FastMath;
  *
  * @author dfermin
  */
+@Slf4j
 public class Peptide {
 
 	private String peptide;
@@ -59,7 +61,9 @@ public class Peptide {
 
 			if( (pos == Constants.NTERM_MOD) || (pos == Constants.CTERM_MOD) ) modPosMap.put(pos, mass);
 			else {
+
 				String C = Character.toString(peptide.charAt(pos));
+				log.debug("Peptide: " + peptide + " Position: " + pos + " Mass: " + mass + " AA: " + C);
 				String c = C.toLowerCase();
 
 				if( LucXorConfiguration.getFixedModMap().containsKey(C)) {
@@ -140,13 +144,13 @@ public class Peptide {
 
 	// Function returns the modified peptide assigned to this object in "TPP format"
 	public String getModPepTPP() {
-		String ret = "";
+		StringBuilder ret = new StringBuilder();
 		int pepLen_local = pepLen;
 
 		// Append N-term modification (if any is present)
 		if(modPeptide.startsWith("[")) {
 			int d = (int) Math.round(LucXorConfiguration.getNtermMass());
-			ret = "n[" + d + "]";
+			ret = new StringBuilder("n[" + d + "]");
 			pepLen_local += 1; // need this to capture last residue in this function
 		}
 
@@ -158,18 +162,18 @@ public class Peptide {
 
 			// this is a modified amino acid
 			if(Character.isLowerCase(modPeptide.charAt(i))) {
-				ret += Utils.getTPPresidue(aa, LucXorConfiguration.getNtermMass(), LucXorConfiguration.getCtermMass());
+				ret.append(Utils.getTPPresidue(aa, LucXorConfiguration.getNtermMass(), LucXorConfiguration.getCtermMass()));
 			}
-			else ret += aa;
+			else ret.append(aa);
 		}
 
 		// Append C-term modification (if any is present)
 		if(modPeptide.endsWith("]")) {
 			int d = (int) Math.round(LucXorConfiguration.getCtermMass());
-			ret += "c[" + d + "]";
+			ret.append("c[").append(d).append("]");
 		}
 
-		return ret;
+		return ret.toString();
 	}
 
 
@@ -296,8 +300,8 @@ public class Peptide {
 
 	private void calcNumDecoyPermutations() {
 		double ctr = 0;
-		double p = (double) numPPS;
-		double k = (double) numRPS;
+		double p = numPPS;
+		double k = numRPS;
 
 		for(int i = 0; i < pepLen; i++) {
 			String aa = Character.toString( peptide.charAt(i) );
@@ -337,24 +341,24 @@ public class Peptide {
 			x = MathFunctions.getAllCombinations(candModSites, numRPS);
 
 			for(TIntList a : x) {
-				String modPep = "";
-				if(modPosMap.containsKey(Constants.NTERM_MOD)) modPep = "[";
+				StringBuilder modPep = new StringBuilder();
+				if(modPosMap.containsKey(Constants.NTERM_MOD)) modPep = new StringBuilder("[");
 
 				for(i = 0; i < pepLen; i++) {
 					String aa = Character.toString( peptide.charAt(i) ).toLowerCase();
 
 					if(a.contains(i)) { // site to be modified
-						modPep += aa; //Character.toString( Character.toLowerCase(peptide.charAt(i)) );
+						modPep.append(aa); //Character.toString( Character.toLowerCase(peptide.charAt(i)) );
 					}
 					else if( nonTargetMods.containsKey(i) ) {
-						modPep += aa;
+						modPep.append(aa);
 					}
-					else modPep += aa.toUpperCase();
+					else modPep.append(aa.toUpperCase());
 				}
 
-				if(modPosMap.containsKey(Constants.CTERM_MOD)) modPep = "]";
+				if(modPosMap.containsKey(Constants.CTERM_MOD)) modPep = new StringBuilder("]");
 
-				ret.put(modPep, 0d);
+				ret.put(modPep.toString(), 0d);
 			}
 		}
 		else { // generate decoy (negative) permutations
@@ -377,24 +381,24 @@ public class Peptide {
 			x = MathFunctions.getAllCombinations(candModSites, numRPS);
 
 			for(TIntList a : x) {
-				String modPep = "";
-				if(modPosMap.containsKey(Constants.NTERM_MOD)) modPep = "[";
+				StringBuilder modPep = new StringBuilder();
+				if(modPosMap.containsKey(Constants.NTERM_MOD)) modPep = new StringBuilder("[");
 
 				for(i = 0; i < pepLen; i++) {
 					String aa = Character.toString( peptide.charAt(i) ).toLowerCase();
 
 					if(a.contains(i)) { // site to be modified
 						String decoyChar = Utils.getDecoySymbol( peptide.charAt(i) );
-						modPep += decoyChar;
+						modPep.append(decoyChar);
 					}
 					else if( nonTargetMods.containsKey(i) ) {
-						modPep += aa;
+						modPep.append(aa);
 					}
-					else modPep += aa.toUpperCase();
+					else modPep.append(aa.toUpperCase());
 				}
 
-				if(modPosMap.containsKey(Constants.CTERM_MOD)) modPep = "]";
-				ret.put(modPep, 0d);
+				if(modPosMap.containsKey(Constants.CTERM_MOD)) modPep = new StringBuilder("]");
+				ret.put(modPep.toString(), 0d);
 			}
 		}
 
